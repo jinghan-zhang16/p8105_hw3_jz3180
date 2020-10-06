@@ -1,0 +1,14 @@
+---
+title: "Homework 3"
+author: Jinghan Zhang
+date: October 6, 2020
+output: github_document
+---
+
+## Problem 1
+
+```{r setup}
+library(tidyverse)
+library(readxl)
+```
+
