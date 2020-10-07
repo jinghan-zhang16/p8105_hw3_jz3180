@@ -63,3 +63,45 @@ instacart %>%
   
 ```
 
+## Problem 2
+
+```{r setup for Accel data}
+library(ggridges)
+
+accel_table = read_csv("./data/accel_data.csv") %>%
+  janitor::clean_names() 
+
+accel_table$day = 
+  factor(accel_table$day, 
+         levels 
+            = c("Monday",
+                "Tuesday",
+                "Wednesday",
+                "Thursday",
+                "Friday",
+                "Saturday",
+                "Sunday")
+         )
+
+cleaned_accel_table <- accel_table[order(accel_table$week, accel_table$day),] %>%
+  mutate(day_type = recode(day,
+    "Saturday" = "Weekend",
+    "Sunday" = "Weekend",
+    .default = "Weekday"
+    )) %>%
+  relocate(day_type, .after = day)
+
+
+aggregated <- cleaned_accel_table %>%
+  mutate(total_activity = select(cleaned_accel_table, starts_with("activity_")) %>% rowSums()) %>%
+  select(week, day_id, day, day_type, total_activity)
+  
+plot_table <- cleaned_accel_table %>%
+  select(day, day_id, starts_with("activity_")) %>%
+  gather(minute, activity, activity_1:activity_1440, factor_key = FALSE) %>%
+  mutate(minute = as.numeric((str_replace(minute, "activity_", ""))))
+  
+
+ggplot(plot_table, aes(x = minute, y = activity))  + 
+  geom_point(aes(color = day))
+```
