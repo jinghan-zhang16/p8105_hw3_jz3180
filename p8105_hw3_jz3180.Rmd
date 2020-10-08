@@ -109,6 +109,7 @@ ggplot(plot_table, aes(x = minute, y = activity))  +
 
 ```{r setup for noaa data}
 library(p8105.datasets)
+library(ggplot2)
 data("ny_noaa") 
 
 noaa <- ny_noaa %>%
@@ -117,8 +118,8 @@ noaa <- ny_noaa %>%
   mutate(prcp = as.numeric(prcp)) %>%
   mutate(snow = as.numeric(snow)) %>%
   mutate(snwd = as.numeric(snwd)) %>%
-  mutate(tmin = as.numeric(tmin)) %>%
-  mutate(tmax = as.numeric(tmax)) %>%
+  mutate(tmin = as.numeric(tmin)/10) %>%
+  mutate(tmax = as.numeric(tmax)/10) %>%
   arrange(year, month, day)
 
 tmax_month <- noaa %>%
@@ -131,12 +132,42 @@ tmax_avg <- tmax_month %>%
 
 jan_tmax <- tmax_avg %>%
   filter(month == "01") %>%
-  select(id, year, month, avg_tmax)
+  filter(!is.na(avg_tmax)) %>%
+  select(id, year, avg_tmax)
 
+jan_tmax %>%
+  ggplot(aes(x=year, y=avg_tmax, group=id)) +
+  theme_bw() +
+  theme(panel.grid=element_blank()) +
+  geom_line(size=0.2, alpha=0.1)
+  
 jul_tmax <- tmax_avg %>%
   filter(month == "07") %>%
-  select(id, year, month, avg_tmax)
+  filter(!is.na(avg_tmax)) %>%
+  select(id, year, avg_tmax)
+
+jul_tmax %>%
+  ggplot(aes(x=year, y=avg_tmax, group=id)) +
+  theme_bw() +
+  theme(panel.grid=element_blank()) +
+  geom_line(size=0.2, alpha=0.1)
   
-  
+tmax_tmin <- noaa %>%
+  select(tmax, tmin) %>%
+  filter(!is.na(tmax)) %>%
+  filter(!is.na(tmin))
+
+tmax_tmin %>%
+  ggplot(aes(x = tmin, y = tmax)) +
+  geom_hex()
+
+snow_history <- noaa %>%
+  select(year, snow) %>%
+  filter(snow > 0) %>%
+  filter(snow < 100)
+
+snow_history %>%
+  ggplot(aes(x = year)) +
+  stat_count(width = 1)
 
 ```
