@@ -105,3 +105,38 @@ plot_table <- cleaned_accel_table %>%
 ggplot(plot_table, aes(x = minute, y = activity))  + 
   geom_point(aes(color = day))
 ```
+
+
+```{r setup for noaa data}
+library(p8105.datasets)
+data("ny_noaa") 
+
+noaa <- ny_noaa %>%
+  janitor::clean_names() %>%
+  separate(date, c("year", "month", "day"), sep = "-") %>%
+  mutate(prcp = as.numeric(prcp)) %>%
+  mutate(snow = as.numeric(snow)) %>%
+  mutate(snwd = as.numeric(snwd)) %>%
+  mutate(tmin = as.numeric(tmin)) %>%
+  mutate(tmax = as.numeric(tmax)) %>%
+  arrange(year, month, day)
+
+tmax_month <- noaa %>%
+  select(-prcp, -snow, -snwd, -tmin) %>%
+  spread(day, tmax) %>%
+  mutate(avg_tmax = rowMeans(select(., "01":"31"), na.rm = TRUE))
+
+tmax_avg <- tmax_month %>%
+  select(id, year, month, avg_tmax)
+
+jan_tmax <- tmax_avg %>%
+  filter(month == "01") %>%
+  select(id, year, month, avg_tmax)
+
+jul_tmax <- tmax_avg %>%
+  filter(month == "07") %>%
+  select(id, year, month, avg_tmax)
+  
+  
+
+```
