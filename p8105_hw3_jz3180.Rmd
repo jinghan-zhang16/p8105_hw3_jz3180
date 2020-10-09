@@ -10,6 +10,19 @@ output: github_document
 ```{r setup}
 library(tidyverse)
 library(p8105.datasets)
+
+knitr::opts_chunk$set(
+	fig.width = 6, 
+  fig.asp = .6,
+  out.width = "90%"
+  )
+theme_set(theme_minimal() + theme(legend.position = "bottom"))
+options(
+  ggplot2.continuous.colour = "viridis",
+  ggplot2.continuous.fill = "viridis"
+  )
+scale_colour_discrete = scale_colour_viridis_d
+scale_fill_discrete = scale_fill_viridis_d
 data("instacart")
 ```
 
@@ -36,6 +49,7 @@ instacart %>%
   geom_point() +
   theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust=1))
 ```
+
 Make a table showing the three most popular items in each of the aisles "baking ingredients", "dog food care", and "packaged vegetables fruits". Include the number of times each item is ordered in your table.
 
 ```{r}
@@ -65,6 +79,8 @@ instacart %>%
 
 ## Problem 2
 
+Load, tidy, and otherwise wrangle the data. Your final dataset should include all originally observed variables and values; have useful variable names; include a weekday vs weekend variable; and encode data with reasonable variable classes.
+
 ```{r setup for Accel data}
 library(ggridges)
 
@@ -90,8 +106,11 @@ cleaned_accel_table <- accel_table[order(accel_table$week, accel_table$day),] %>
     .default = "Weekday"
     )) %>%
   relocate(day_type, .after = day)
+```
 
+This dataset contains `r nrow(cleaned_accel_table)` rows and `r ncol(cleaned_accel_table)` columns. Observations are accelerometer data collected over 5 weeks on a 63 year-old male with BMI 25, who was admitted to the Advanced Cardiac Care Center of Columbia University Medical Center and diagnosed with congestive heart failure (CHF). The variables are the week, day, day type, and activity counts for each minute of a 24-hour day starting at midnight.
 
+```{r analyses for Accel data}
 aggregated <- cleaned_accel_table %>%
   mutate(total_activity = select(cleaned_accel_table, starts_with("activity_")) %>% rowSums()) %>%
   select(week, day_id, day, day_type, total_activity)
@@ -106,12 +125,20 @@ ggplot(plot_table, aes(x = minute, y = activity))  +
   geom_point(aes(color = day))
 ```
 
+Initially there are no apparent trends from just the table. But with the single-panel plot, it appears that there are a few time points where there is more activity. On Sunday's, there is an activity peak around minute 600-750 of the day. And on other days of the week, there is an activity peak around minute 1100-1300 of the day. This makes sense as usually people are more active towards the later part of the day, whereas on weekends they have free time earlier in the day too.
+
+
+## Problem 3
 
 ```{r setup for noaa data}
 library(p8105.datasets)
 library(ggplot2)
 data("ny_noaa") 
+```
 
+This dataset contains `r nrow(ny_noaa)` rows and `r ncol(ny_noaa)` columns. Observations are from different data collection sites. The variables are the id of site, date of collected data, precipitation, snow, snow depth, maximum temperature, and minimum temperature. Just taking a look at the data, there is a lot of missing data (NA's), especially in the more recent dates of the collection time frame. This could prove concerning for data analysis and visualization.
+
+```{r cleanup for noaa data}
 noaa <- ny_noaa %>%
   janitor::clean_names() %>%
   separate(date, c("year", "month", "day"), sep = "-") %>%
@@ -121,7 +148,11 @@ noaa <- ny_noaa %>%
   mutate(tmin = as.numeric(tmin)/10) %>%
   mutate(tmax = as.numeric(tmax)/10) %>%
   arrange(year, month, day)
+```
 
+For snowfall, the most commonly observed values are 0 because it usually doesn't snow during the year.
+
+```{r plotting for noaa data part one}
 tmax_month <- noaa %>%
   select(-prcp, -snow, -snwd, -tmin) %>%
   spread(day, tmax) %>%
@@ -135,7 +166,8 @@ jan_tmax <- tmax_avg %>%
   filter(!is.na(avg_tmax)) %>%
   select(id, year, avg_tmax)
 
-jan_tmax %>%
+jan_tmaxplot = 
+  jan_tmax %>%
   ggplot(aes(x=year, y=avg_tmax, group=id)) +
   theme_bw() +
   theme(panel.grid=element_blank()) +
@@ -146,18 +178,30 @@ jul_tmax <- tmax_avg %>%
   filter(!is.na(avg_tmax)) %>%
   select(id, year, avg_tmax)
 
-jul_tmax %>%
+jul_tmaxplot = 
+  jul_tmax %>%
   ggplot(aes(x=year, y=avg_tmax, group=id)) +
   theme_bw() +
   theme(panel.grid=element_blank()) +
   geom_line(size=0.2, alpha=0.1)
-  
+
+library(ggpubr)
+
+ggarrange(jan_tmaxplot, jul_tmaxplot, 
+          labels = c("January", "July"),
+          ncol = 2, nrow = 1)
+```
+
+For both January and July, the average max temperature in each station oscillates throughout the years. However, the amplitude of oscillation (distance from trough to peak) is much less for July, with no apparent outliers. In January, there are more stark differences throughout the years - in particular there are very low values from 1994 and 2004.
+
+```{r plotting for noaa data part two}  
 tmax_tmin <- noaa %>%
   select(tmax, tmin) %>%
   filter(!is.na(tmax)) %>%
   filter(!is.na(tmin))
 
-tmax_tmin %>%
+tmax_tminplot = 
+  tmax_tmin %>%
   ggplot(aes(x = tmin, y = tmax)) +
   geom_hex()
 
@@ -166,8 +210,13 @@ snow_history <- noaa %>%
   filter(snow > 0) %>%
   filter(snow < 100)
 
-snow_history %>%
+snow_historyplot =
+  snow_history %>%
   ggplot(aes(x = year)) +
   stat_count(width = 1)
+
+ggarrange(tmax_tminplot, snow_historyplot, 
+          labels = c("tmax vs tmin", "Snowfall Distribution"),
+          ncol = 2, nrow = 1)
 
 ```
